@@ -1,0 +1,8 @@
+#!/bin/sh
+export PATH=/bin:/sbin
+printf '\nS3 Linux - RAM system\n'
+uname -a
+printf '\neMMC partitions:\n'
+cat /proc/partitions
+printf '\nRoot shell via local console.\n'
+exec /bin/sh -i

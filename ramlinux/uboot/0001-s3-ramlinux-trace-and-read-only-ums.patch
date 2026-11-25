@@ -1,0 +1,88 @@
+diff --git a/arch/arm/cpu/armv8/start.S b/arch/arm/cpu/armv8/start.S
+index 40c342e9..413fad53 100644
+--- a/arch/arm/cpu/armv8/start.S
++++ b/arch/arm/cpu/armv8/start.S
+@@ -53,6 +53,10 @@ _bss_end_ofs:
+ 	.quad	__bss_end - _start
+ 
+ reset:
++	ldr x9, =0x4d000000
++	mov w10, #0x3301
++	str w10, [x9, #12]
++	dsb sy
+ 	/* Allow the board to save important registers */
+ 	b	save_boot_params
+ .globl	save_boot_params_ret
+diff --git a/cmd/usb_mass_storage.c b/cmd/usb_mass_storage.c
+index e8b87045..5d108878 100644
+--- a/cmd/usb_mass_storage.c
++++ b/cmd/usb_mass_storage.c
+@@ -36,15 +36,8 @@ static int ums_read_sector(struct ums *ums_dev,
+ static int ums_write_sector(struct ums *ums_dev,
+ 			    ulong start, lbaint_t blkcnt, const void *buf)
+ {
+-	struct blk_desc *block_dev = &ums_dev->block_dev;
+-	lbaint_t blkstart = start + ums_dev->start_sector;
+-	int ret;
+-
+-	ret = blk_dselect_hwpart(block_dev, ums_dev->hwpart);
+-	if (ret && ret != -ENOSYS)
+-		return ret;
+-
+-	return blk_dwrite(block_dev, blkstart, blkcnt, buf);
++	/* Recovery image: reject every host write, including accidental writes. */
++	return 0;
+ }
+ 
+ static struct ums *ums;
+diff --git a/drivers/serial/serial-uclass.c b/drivers/serial/serial-uclass.c
+index 9be2ad27..03b532ae 100644
+--- a/drivers/serial/serial-uclass.c
++++ b/drivers/serial/serial-uclass.c
+@@ -6,6 +6,7 @@
+ #define LOG_CATEGORY UCLASS_SERIAL
+ 
+ #include <config.h>
++#include <cpu_func.h>
+ #include <dm.h>
+ #include <env_internal.h>
+ #include <errno.h>
+@@ -255,6 +256,18 @@ static void _serial_flush(struct udevice *dev)
+ 
+ static void _serial_putc(struct udevice *dev, char ch)
+ {
++#ifndef CONFIG_SPL_BUILD
++	/* Temporary recovery trace retained in DRAM across watchdog reset. */
++	volatile unsigned int *trace = (void *)0x4d000000;
++	if (trace[0] == 0x53435233 && trace[1] < 0x1f00) {
++		((volatile char *)0x4d000010)[trace[1]] = ch;
++		unsigned long line = (0x4d000010UL + trace[1]) & ~63UL;
++		trace[1]++;
++		flush_dcache_range(line, line + 64);
++		flush_dcache_range(0x4d000000, 0x4d000040);
++	}
++
++#endif
+ 	struct dm_serial_ops *ops = serial_get_ops(dev);
+ 	int err;
+ 
+@@ -384,6 +397,7 @@ static int _serial_tstc(struct udevice *dev)
+ 
+ void serial_putc(char ch)
+ {
++
+ 	if (gd->cur_serial_dev)
+ 		_serial_putc(gd->cur_serial_dev, ch);
+ }
+diff --git a/drivers/usb/gadget/f_mass_storage.c b/drivers/usb/gadget/f_mass_storage.c
+index 76ee08dc..27903ab0 100644
+--- a/drivers/usb/gadget/f_mass_storage.c
++++ b/drivers/usb/gadget/f_mass_storage.c
+@@ -2500,6 +2500,7 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
+ 
+ 	for (i = 0; i < nluns; i++) {
+ 		common->luns[i].removable = 1;
++		common->luns[i].ro = 1;
+ 
+ 		rc = fsg_lun_open(&common->luns[i], ums[i].num_sectors, ums->block_dev.blksz, "");
+ 		if (rc)

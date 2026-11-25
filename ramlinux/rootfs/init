@@ -1,0 +1,54 @@
+#!/bin/sh
+# PID 1 of the S3 RAM Linux. Runs only in RAM; it never mounts or writes the eMMC by itself.
+# Gives the host a USB serial console (ttyGS0) and a USB network (box 192.168.77.1, host 192.168.77.10).
+export PATH=/bin:/sbin
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+mkdir -p /dev/pts /run /tmp
+mount -t devpts devpts /dev/pts
+mount -t tmpfs tmpfs /run
+hostname s3-linux
+echo '[S3-LINUX] INIT_STARTED' > /dev/kmsg
+modprobe sunxi
+modprobe libcomposite
+mount -t configfs none /sys/kernel/config
+G=/sys/kernel/config/usb_gadget/s3
+mkdir -p "$G"
+echo 0x1d6b > "$G/idVendor"
+echo 0x0104 > "$G/idProduct"
+echo 0x0200 > "$G/bcdUSB"
+mkdir -p "$G/strings/0x409"
+echo S3V2LINUX > "$G/strings/0x409/serialnumber"
+echo 'S3 custom system' > "$G/strings/0x409/manufacturer"
+echo 'S3 Linux console and network' > "$G/strings/0x409/product"
+mkdir -p "$G/configs/c.1/strings/0x409"
+echo 'Console and USB Ethernet' > "$G/configs/c.1/strings/0x409/configuration"
+echo 250 > "$G/configs/c.1/MaxPower"
+mkdir -p "$G/functions/acm.usb0" "$G/functions/ecm.usb0"
+echo 02:53:33:00:00:01 > "$G/functions/ecm.usb0/dev_addr"
+echo 02:53:33:00:00:02 > "$G/functions/ecm.usb0/host_addr"
+ln -s "$G/functions/acm.usb0" "$G/configs/c.1/"
+ln -s "$G/functions/ecm.usb0" "$G/configs/c.1/"
+for i in 1 2 3 4 5; do
+ UDC=$(ls /sys/class/udc | head -n 1)
+ [ -n "$UDC" ] && break
+ sleep 1
+done
+echo "[S3-LINUX] UDC=$UDC" > /dev/kmsg
+if [ -n "$UDC" ]; then
+ if echo "$UDC" > "$G/UDC"; then echo '[S3-LINUX] USB_BIND_OK' > /dev/kmsg; else echo '[S3-LINUX] USB_BIND_FAILED' > /dev/kmsg; fi
+fi
+if [ -n "$UDC" ] && [ -w "/sys/class/udc/$UDC/soft_connect" ]; then
+ echo disconnect > "/sys/class/udc/$UDC/soft_connect"
+ sleep 1
+ echo connect > "/sys/class/udc/$UDC/soft_connect"
+ echo '[S3-LINUX] USB_SOFT_RECONNECTED' > /dev/kmsg
+fi
+ifconfig usb0 192.168.77.1 up
+udhcpd /etc/udhcpd.conf
+httpd -p 192.168.77.1:80 -h /www
+(while :; do setsid getty -L -n -l /bin/console 115200 ttyGS0; sleep 1; done) &
+[ -c /dev/tty1 ] && (while :; do setsid getty -L -n -l /bin/console 115200 tty1; sleep 1; done) &
+echo '[S3-LINUX] OS_READY: USB console ttyGS0, HTTP 192.168.77.1' > /dev/kmsg
+while :; do sleep 60; done

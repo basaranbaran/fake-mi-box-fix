@@ -1,0 +1,15 @@
+# Your own files: firmware, backups and build output never belong in this repo.
+WORK/
+BACKUP/
+out/
+*.img
+*.img.xz
+*.zip
+*.fex
+*.raw
+*.bin
+!tools/*.patch
+sunxi-tools/
+__pycache__/
+*.pyc
+.DS_Store

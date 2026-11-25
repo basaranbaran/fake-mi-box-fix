@@ -1,0 +1,24 @@
+diff --git a/fel_lib.c b/fel_lib.c
+index b667dd1..2de33fc 100644
+--- a/fel_lib.c
++++ b/fel_lib.c
+@@ -209,9 +209,16 @@ static void aw_fel_get_version(feldev_handle *dev, struct aw_fel_version *buf)
+ /* AW_FEL_1_READ request */
+ void aw_fel_read(feldev_handle *dev, uint32_t offset, void *buf, size_t len)
+ {
+-	aw_send_fel_request(dev, AW_FEL_1_READ, offset, len);
+-	aw_usb_read(dev, buf, len);
+-	aw_read_fel_status(dev);
++	/* Keep individual ROM requests within the verified 64 KiB size. */
++	while (len) {
++		size_t chunk = len > 65536 ? 65536 : len;
++		aw_send_fel_request(dev, AW_FEL_1_READ, offset, chunk);
++		aw_usb_read(dev, buf, chunk);
++		aw_read_fel_status(dev);
++		offset += chunk;
++		buf = (char *)buf + chunk;
++		len -= chunk;
++	}
+ }
+ 
+ /* AW_FEL_1_WRITE request */
