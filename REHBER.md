@@ -270,7 +270,7 @@ Bu adım eMMC'ye yazmaz.
 2. Güç adaptörünü çıkar.
 3. USB kablosunu çıkar.
 4. 15 saniye bekle.
-5. Kart üzerindeki push butonu bul.
+5. Kart üzerindeki push butonu bul. Buton güç girişinin hemen üstündedir (aşağıdaki fotoğraf).
 6. Butona bas ve basılı tut.
 7. Butonu basılı tutarken yalnız USB kablosunu bilgisayara tak.
 8. Butonu 10 saniye basılı tut. Sonra bırak.
@@ -283,8 +283,14 @@ Bu adım eMMC'ye yazmaz.
 10. Çıktıda SoC kimliği `0x1823` olmalı (`soc=00001823`).
 11. Kimlik doğruysa güç adaptörünü tak. USB kablosunu çıkarma.
 
-> **Not.** Butonun tam konumu henüz belgelenmedi.
-> Konumu gösteren bir fotoğraf bu rehbere eklenecek.
+![Kartın ön yüzü: FEL butonu güç girişinin hemen üstündeki beyaz parçadır](docs/images/board-front-fel-button.jpg)
+
+*FEL butonu sarı halkanın içindedir. Buton kartın ön yüzünde, sol üst köşededir.*
+*Güç girişinin (DC soketi) hemen üstünde, kartın kenarında durur.*
+*Buton beyaz ve küçüktür (yaklaşık 3×6 mm).*
+
+Kasada bu butona açılan bir delik yok. Butona basmak için kasayı aç.
+Butonun yerini kendi kutumda doğruladım. Başka kart sürümlerinde yeri farklı olabilir.
 
 Sıra önemlidir. Butonu güç verirken basılı tutmak FEL vermedi (iki denemede).
 Önce her şeyi çıkar. Sonra butonu tut. Sonra yalnız USB'yi tak.

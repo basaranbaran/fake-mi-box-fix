@@ -45,7 +45,7 @@ All steps are in [REHBER.md](REHBER.md).
 | Step | What you do |
 |:--|:--|
 | [0](REHBER.md#adim-0) | Prepare, with no box connected. Build `sunxi-fel`. Download the firmware, check its SHA-256, unpack it, patch the DRAM values. |
-| [1](REHBER.md#adim-1) | Put the box in FEL mode with the push button on the board. |
+| [1](REHBER.md#adim-1) | Put the box in FEL mode with the push button on the board (the small white part just above the DC jack, [photo](docs/images/board-front-fel-button.jpg)). |
 | [2](REHBER.md#adim-2) | ROTPK check. Go or no-go. |
 | [3](REHBER.md#adim-3) | Build the RAM Linux in Docker. Start it over FEL. Open the USB console and the USB network. |
 | [4](REHBER.md#adim-4) | Full backup of the eMMC. |
